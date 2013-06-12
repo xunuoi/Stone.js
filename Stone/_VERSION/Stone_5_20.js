@@ -1,7 +1,7 @@
 /* 
  * Stone.js
  * @Cloud Xu: xwlxyjk@gmail.com
- * 2013/5/30 V1.4
+ * 2013/5/18 V1.2
  * Get The Latest Version From: 
  * https://github.com/xunuoi/xStone
  */
@@ -9,9 +9,8 @@
 (function(_isFirstLoad){
 	//Prevent Repeat Load Stone
 	if(_isFirstLoad) {}else { return ; }
-	var _globalContext = window || {};
 /* DEFINE STONE OBJECT  --------------------------------------------------------*/
-	_globalContext.stone = function Stone(){
+	window.stone = function Stone(){
 		var _handleHash = {},
 			_handlerIndex = 0,
 			_guidBase = {},
@@ -19,7 +18,6 @@
 		
 		var _exports =  {
 			noop: function(){},
-			_version: '1.4',
 			typeCheckOff: function(){
 				this.typeCheck = function(){
 					return _exports;
@@ -357,14 +355,6 @@
 			    }
 			    return res;
 			},
-			arrayDel: function(arr, index, ifClone){
-				ifClone ? arr = stone.clone(arr) : '';
-			  	for(var i=index, len=arr.length-1; i<len; i++){
-			         arr[i] = arr[i + 1];
-			    }
-			    arr.length = len;				
-			    return arr;
-			},
 			sort: function(list, sortFn, subSortFn){
 				if(!sortFn) { return list.sort(); }
 				else {
@@ -452,23 +442,7 @@
 				});
 				return num;
 			},
-			bindThis: function(fnThis, fnbody, isReturnAll){
-				return function(){
-					var fnArgs = arguments;	
-					if(!isReturnAll){
-						var rtVal = stone.every(fnThis, //this: [svg Object]
-							function(item){ 
-								return fnbody.apply(item, fnArgs);
-							} );
-					}else {
-						var rtVal = stone.each(fnThis, 
-							function(item){ 
-								return fnbody.apply(item, fnArgs);
-							} );
-					}
-					return (rtVal !== undefined ? rtVal : fnThis);
-				};
-			},
+
 			forIn:function(obj,call1,call2){
 				var len = obj.length,
 					i = 0,
@@ -622,21 +596,6 @@
 
 		        return rsHtml;
 		    },
-		    attr: function(tar, key, val){
-		    	var list = [],
-		    		rs, rtOne = false;
-		    	tar.length ? list = tar : (list = [].concat(tar), rtOne = true);
-		    	
-		    	val === undefined ? rs = this.each(list, function(cur){
-		    		return cur.getAttribute(key, val);
-		    	}) : ( this.every(list, function(cur){
-		    		cur.setAttribute(key, val);
-		    	}), rtOne = false ); 
-		    	//rs.length == 1 ?  rs = rs[0] : (rs.length == 0 ? rs = undefined : '');
-		    	rtOne === true ? rs = rs[0] : '';
-
-		    	return rs;
-		    },
 		    pureSelector: function(str){
 		    	if(stone.inArray(str.charAt(0), ['#', '.'])){
 		    		return str.slice(1);
@@ -644,29 +603,12 @@
 		    		return str;
 		    	}
 		    },
-		    random: function(dis) {
-		    	//like dis = [1, 10]
-		    	var dis = dis || [0, 1];
-				return parseInt(Math.random() * (dis[1] - dis[0] + 1) + dis[0])
-			},
-		    _loadedScript: function(){
-		    	var scripts = document.getElementsByTagName('script'),
-					srcs = [], len = scripts.length;
-				for(var i=0; i<len; i++){
-					srcs.push(scripts[i].getAttribute('src'));
-				}
-
-				return srcs;
-		    }(),
-		    /*
-			 * script/or errorfn
-		     */
-		    requireScript: function(url, onloadfn, scriptId){//script dynacmic load
+		    getScript: function(url, onloadfn, scriptId){//script脚本延迟载入工具
 		  		//console.log('toloadQueu: '+module.toLoadQueue);
 		  		if(stone.isIE()){
-		  			if(module.isGettingScript === true){
+		  			if(module.isGettingScript){
 			  			module.toLoadQueue.push(function () {
-							stone.requireScript.call(null, url, onloadfn, scriptId);
+							stone.getScript.call(null, url, onloadfn);
 						});
 
 						return;
@@ -675,137 +617,82 @@
 
 				var script = document.createElement('script');
 				script.type = 'text/javascript';
-				var errorfn = onloadfn || this.noop;
-				//get 
-				scriptId ? 
-					(typeof scriptId == 'string' ? 
-						script.setAttribute('id',scriptId ) : 
-						(typeof scriptId == 'function' ? 
-							errorfn = scriptId : 
-							'' ) )
-					: '';
-				
-				if(stone.isIE() && script.readyState){ //for IE // or use && script.readyState
-					var ieLoaded = function(){
-						script.onreadystatechange = null;
-						onloadfn ? onloadfn.call(script, url) : '';
-
-						delete module.isGettingScript; 
-						if(module.toLoadQueue.length > 0){
-							module.toLoadQueue.shift()();
-							/*stone.fnRun(module.toLoadQueue);
-							module.toLoadQueue = [];*/
-						}
-					};
-					//if loaded js file
-					if(stone.inArray(url, stone._loadedScript)){
-						ieLoaded();
-						return;
-					}
-					script.onreadystatechange = function(){
-						if(script.readyState == 'loading'){
-							//console.log('onLoading: || ' + script.src);
-						}else if(script.readyState == 'loaded' || script.readyState == 'complete') {
-							ieLoaded();
-							//console.log('loaded: || ' + script.src);
-						}else {
-							//console.log(script.readyState);
-						}
-					};
-					//script.defer = true;
-
-				}else {//other browser
-					script.onload = function(event){
-						script.onload = null;	
-						onloadfn ? onloadfn.call(script, url) : '';
-					};
-					script.onerror = function(){
-						script.onerror = null;
-						errorfn ? errorfn.call(script, url, onloadfn) : '';
-					};
-					//script.async = false;
-					//if async == true, other broser also keep sequence load
-				}
-				module.isGettingScript = true;
-				require.charset ? script.charset = require.charset : '';
-
-				script.src = url;
-				stone._loadedScript.push(url);
-				//if the body node is not created, then append this script node in head
-				document.body ? document.body.appendChild(script) : document.getElementsByTagName('head')[0].appendChild(script); 
-				return this;
-			},
-			getScript: function(url, onloadfn, scriptId){
-				var script = document.createElement('script');
-				script.type = 'text/javascript';
-				var errorfn = onloadfn || this.noop;
 			
-				/*if(scriptId != undefined && typeof scriptId == 'string' ) { 
-					script.setAttribute('id',scriptId ); 
-				}*/
-				scriptId ? 
-					(typeof scriptId == 'string' ? 
-						script.setAttribute('id',scriptId ) : 
-						(typeof scriptId == 'function' ? 
-							errorfn = scriptId : 
-							'' ) )
-					: '';
+				if(scriptId != undefined && typeof scriptId == 'string' ) { script.setAttribute('id',scriptId ); }	
 				
-				if(stone.isIE() && script.readyState){ //for IE // or use && script.readyState
-					var ieLoaded = function(){
-						script.onreadystatechange = null;
-						onloadfn ? onloadfn.call(script, url) : '';
-					}
+				//stone.ltIE(9) || 
+				if(stone.isIE() && script.readyState){ //for IE < 9 // or use && script.readyState
+
 					script.onreadystatechange = function(){
 						if(script.readyState == 'loading'){
 							//console.log('onLoading: || ' + script.src);
+
 						}else if(script.readyState == 'loaded' || script.readyState == 'complete') {
-							ieLoaded();
+							script.onreadystatechange = null;
 							//console.log('loaded: || ' + script.src);
+							
+
+							onloadfn ? onloadfn.call(script, url) : '';
+
+							delete module.isGettingScript; 
+							if(module.toLoadQueue.length){
+								module.toLoadQueue.shift()();
+							}
+
+
 						}else {
-							//console.log(script.readyState);
+							console.log(script.readyState);
 						}
 					};
 					//script.defer = true;
+
 				}else {//other browser
 					script.onload = function(event){
 						script.onload = null;	
-						//console.log(url)
 						if(onloadfn && !onloadfn.isJSONPLoadedCallback) {//if not the jsonp callback
 							onloadfn.call(script, url);
 						}
 					};
 					script.onerror = function(){
 						script.onerror = null;
-						errorfn ? errorfn.call(script, url, onloadfn) : '';
+						onloadfn ? onloadfn.call(script, url) : '';
 					};
 					//script.async = false;
 					//if async == true, other broser also keep sequence load
 				}
-				require.charset ? script.charset = require.charset : '';
-
+				//script.charset = 'utf-8';
 				script.src = url;
-				stone._loadedScript.push(url);
+
+				module.isGettingScript = true;
 				//if the body node is not created, then append this script node in head
-				document.body ? document.body.appendChild(script) : document.getElementsByTagName('head')[0].appendChild(script); 
-				return this;
-			},			
+				if(document.body) { document.body.appendChild(script); } else {document.getElementsByTagName('head')[0].appendChild(script); }	
+				
+			},
+
 			getJSONP: function(obj){ //			
 				var url = obj.url, dataObj = obj.data, success = obj.success || this.noop, error = obj.error || this.noop ;
-				var defCallfn = obj.callback || 'stoneJSONP_'+stone.getAutoIncrement('s_jsonp_fn');
-				obj.data ? obj.data['callback'] = defCallfn : 
-				obj.data = {'callback': defCallfn};
-
-				if(url.indexOf('?') > -1) { url += '&';}else {url += '?';}
-				url += stone.resolveJSON(dataObj);
-				var scriptId = 'x_jsonp_'+this.getAutoIncrement('x_stonejsonp') +'_'+ new Date().getTime();
-				window[defCallfn] = function(dataGot){//the default callback fn
-					document.getElementById(scriptId).setAttribute('guid',scriptId);//set the guid attr
-					success(dataGot);//get the returned servers data
-					//document.getElementById(scriptId).removeNode();
+				var defCallfn = obj.fnName;
+				var _config = {
+					JSONPCallbackName: 'stoneJSONPFn'
 				};
+				if(url.indexOf('?') > -1) { url += '&';}else {url += '?';}
+				url += this.resolveJSON(dataObj);
+				var scriptId = 'x_jsonp_'+this.getAutoIncrement('x_stonejsonp') +'_'+ new Date().getTime();
+				this.stoneJSONPFn = function(dataGot){//the default callback fn
+					document.getElementById(scriptId).setAttribute('guid',scriptId);//set the guid attr
+					success(dataGot);//get the returned servers data	
+				};
+
+				if(typeof _config.JSONPCallbackName == 'string') {
+					//window[config.JSONPCallbackName] = st.JSONPCallback;//plugin in the global
+					window[_config.JSONPCallbackName] = function(dataGot){
+						this.stoneJSONPFn(dataGot);
+					};
+					//the temple global fn
+					defCallfn != undefined ? (window[defCallfn] = window[_config.JSONPCallbackName]) : '';
+				}
 				var JSONPLoaded = function(){//the error fn
-					if(stone.isIE()){
+					if(this.isIE()){
 						if( document.getElementById(scriptId).getAttribute('guid') != scriptId) {
 							error();//if not run st.JSONCallback ，then do error fn
 						}
@@ -813,7 +700,6 @@
 						error();
 					}
 				};
-				//set marks for getScript;
 				JSONPLoaded.isJSONPLoadedCallback = true;
 				this.getScript(url, JSONPLoaded, scriptId);
 			},			
@@ -903,17 +789,12 @@
 			trim: function(str){
 				return str.replace(/(^\s*)|(\s*$)/g, '');
 			},
-			trimAll: function(str){
-				return str.replace(/\s/g, '');
-			},
 			//For String Util
 			//use for mixed with english words and chinese words
 			subMixstr : function(str, cutLen){
 		       //resolve to array
 			    var pt = /[^\x00-\xff]/,temp = [],rs=[];
-			    if ( !pt.test(str))  {
-			    	return str.substring(0,cutLen-1);
-			    }
+			    if ( !pt.test(str))  return str.substring(0,len-1);
 			    else {
 			       for(var i=0, len = str.length; i<len; i++){
 		               pt.test(str[i]) ? temp.push([str[i],2]) : temp.push([str[i],1]);
@@ -925,20 +806,7 @@
 			      if( (lenCounter+=temp[p][1]) >= cutLen ){return rs.join('');}
 			    }
 	        },
-			HTMLEncode: function (html) { 
-				var temp = document.createElement ("div"); 
-				(temp.textContent != null) ? (temp.textContent = html) : (temp.innerText = html); 
-				var output = temp.innerHTML; 
-				temp = null; 
-				return output; 
-			},
-			HTMLDecode: function (text) { 
-				var temp = document.createElement("div"); 
-				temp.innerHTML = text; 
-				var output = temp.innerText || temp.textContent; 
-				temp = null; 
-				return output; 
-			}, 
+
 			getCookie: function(name){
 				var cookieName = encodeURIComponent(name) + '=',
 					cookieStart = document.cookie.indexOf(cookieName),
@@ -1227,11 +1095,14 @@
 		 	 	if(ori == '') {
 		 	 		this.throwError('Error','The original FileName can\'t be empty!');
 		 	 	}
-		 	 	//this.typeCheck([[ori,'string'],[ext,'string']]);
+
+		 	 	this.typeCheck([[ori,'string'],[ext,'string']]);
 		 	 	var rs = ori;
-		 	 	var pt = new RegExp('$\\.'+ext,'g');
+
+		 	 	var pt = new RegExp('$'+ext,'g');
+
 		 	 	
-		 	 	(!type) && (ori.indexOf('.'+ext) == -1) && (!pt.test(ori)) && (rs+=('.'+ext)) ;//------------------------------------------------not all finished
+		 	 	(!type) && (ori.indexOf(ext) == -1) && (!pt.test(ori)) && (rs+=('.'+ext)) ;//------------------------------------------------not all finished
 
 		 	 	return rs;
 		 	 	
@@ -1240,10 +1111,13 @@
 		 	getShortName: function(ori, ext, type){
 
 		 	 	//this.typeCheck([[ori,'string'],[ext,'string']]);
-		 	 	var pt = new RegExp('\\.'+ext+'$','g');
+
+		 	 	var pt = new RegExp('\.'+ext+'$','g');
 		 	 	var rs = ori.replace(pt,'');//----del the extension
 
 		 	 	return rs;
+
+
 		 	},
 
 			addLinkCSS: function(href,callback){
@@ -1439,9 +1313,7 @@
 		    	alink.click();
 		    	alink.remove();
 		    },
-		    trimHtmlTag: function(str){
-		    	return str.replace(/<[^>].*?>/g,"");
-		    },
+
 		    getAutoIncrement: function(forId, baseNum){
 		    	
 		    	if(typeof _autoIncrement[forId] == 'number'){
@@ -1492,23 +1364,15 @@
 				    break;
 			    }///switch
 		    },
-		    language: function(){
-		    	if(navigator.appName == 'Netscape')  {
-					var lan = navigator.language;  
-				}else{  
-					var lan = navigator.browserLanguage;  
-				}
-				return lan;
-		    }(),
 			divLog: function(){
 				var mesCounter = 0;
 				return function(mes, style){
 			  		//var guid = this.getGUID();
-			  		var info = mes || '';
+			  		var info = mes || 'No-Detail-Info';
 			  		this.appendDiv({
 			  			//id: guid,
 			  			html: '<span style="margin:0; padding:0; font-weight:bold;">'+ (++mesCounter) + '-</span> '+ this.getCHTime() + ':  &nbsp;&nbsp;'+ info, 
-			  			style: style || 'display:block; background-color: #A5D1B2; /*#A8BE00 red*/'
+			  			style: style || 'display:block; background-color: #A5D1B2  /*#A8BE00 red*/; '
 			  		});
 
 		  		};///return function(){...}
@@ -1593,10 +1457,12 @@ Require.prototype = {
 		//var loadedMod = module.regedMod;
 		var loadedList = require.getSrc();
 		var jssrc = module.getFullSrc(rjs);
+
 		var toLoad = stone.arrayMinus(jssrc, loadedList);
 		var loadedModSrcList = stone.clone(stone.arrayMinus(jssrc, toLoad));
-		//if existed module not loaded , then load them
-		if(toLoad.length > 0) {
+		//console.log(loadedModSrcList);
+		//ther existed module not loaded , then load them
+		if(toLoad.length) {
 			var toLoadMods = module.getModName(toLoad);
 			this.load(toLoadMods, callfn, loadedModSrcList);
 			//debug****** here lost the loaded module ,not apply in call fn...
@@ -1655,35 +1521,27 @@ Require.prototype = {
 				delete module.anonymousDefine;
 			}
 			delete module.logObj[modName];
-			module.queryTask();
+			module.queryTask(modName);
 			callfn ? callfn() : ''; 
 		};
-		
+		if( stone.inArray(jssrc, fns.getSrc()) ){
+			_callfn(jssrc);
+		}
 		if( jssrc.match(/.css(\?[\w\W]*)?$/) ){
-			!stone.inArray(jssrc, fns.getCssSrc()) ? stone.addLinkCSS(jssrc, _callfn) : _callfn();
+			!stone.inArray(jssrc, fns.getCssSrc()) ? stone.addLinkCSS(jssrc, _callfn) : '';
 		}else {
-			!stone.inArray(jssrc, stone._loadedScript) ? stone.requireScript(jssrc, _callfn, require.error) : '';
+			!stone.inArray(jssrc, fns.getSrc()) ? stone.getScript(jssrc, _callfn) : '';
 		}
 	},
 	cycleLoad: function(mod, callfn, cloneMods){
-		//for IE;
-		var self = this, 
-			type = stone.getType(mod),
-			isFromInner = false;
-
-		if(callfn == 'fromInner') { 
-			callfn = undefined; 
-			isFromInner = true;
-		}
-		// this.regRequire(stone.clone(mod), callfn, cloneMods);
+		var self = this, type = stone.getType(mod);
+		if(callfn == 'fromInner') { callfn = undefined; }
+		this.regRequire(stone.clone(mod), callfn, cloneMods);
 		
 		if(type == 'string'){
 			//the cloneMods is callfn
 			self.doCycleLoad(mod, callfn, cloneMods);
 		}else if(type == 'array'){
-			isFromInner === false ? 
-				this.regRequire(stone.clone(mod), callfn, cloneMods) : 
-				'';
 			var curMod = mod.shift();
 			mod.length > 0 ? self.doCycleLoad(curMod, function(){
 				self.cycleLoad(mod, 'fromInner', callfn);
@@ -1693,10 +1551,9 @@ Require.prototype = {
 		}
 	},
 	doCycleLoad: function (mod, callfn, cloneMods) {
-		var _isLastLoad = false;
 		if(callfn == 'lastLoad') { 
 			callfn = undefined; 
-			_isLastLoad = true; 
+			var _isLastLoad = true; 
 		}
 		var jssrc =  module.getFullSrc(mod);
 		var modName = module.getModName(mod);
@@ -1720,20 +1577,23 @@ Require.prototype = {
 				delete module.anonymousMod;
 				delete module.anonymousDefine;
 			}
-			if(isDeleteDefineInfo === true){
+			if(isDeleteDefineInfo == true){
 				delete module.logObj[modName];
 			}
-			_isLastLoad ? module.queryTask() : '';
+			module.queryTask();
+
 			callfn ? callfn() : ''; 
 		};///var _callfn
 
 		var fns = Require.init;
 		if( jssrc.match(/.css(\?[\w\W]*)?$/) ){
 			stone.inArray(jssrc, fns.getCssSrc()) ? _callfn(jssrc) : 
-			( _isLastLoad === true ? stone.addLinkCSS(jssrc, _callfn) : 
-				stone.addLinkCSS(jssrc, _callfn) );
+			( _isLastLoad === true ? stone.addLinkCSS(jssrc, function(){
+				//_callfn();
+				typeof cloneMods == 'function' ? cloneMods() : '';
+			}) : stone.addLinkCSS(jssrc, callfn) );
 		}else {
-			stone.inArray(jssrc, stone._loadedScript) ? _callfn(jssrc) : stone.requireScript(jssrc, _callfn, require.error);
+			stone.inArray(jssrc, fns.getSrc()) ? _callfn(jssrc) : stone.getScript(jssrc, _callfn);
 		}
 
 		return this;
@@ -1743,33 +1603,24 @@ Require.prototype = {
 	requireLog: [],
 
 	regRequire: function(mod, callfn, loadedModSrc){
-		var reModStr = mod.toString(),
-			self = this;
-		self.requireLog.push(reModStr);
+		var reModStr = mod.toString();
+		this.requireLog.push(reModStr);
+
 		if(stone.getType(callfn) == 'function'){
-			self.inRequire[reModStr] = function(){
-				//release the require call fn
-				delete self.inRequire[reModStr];
-				if(loadedModSrc.length > 0){
+			this.inRequire[reModStr] = function(){
+				if(loadedModSrc.length){
 					var loadedMods = module.getModName(loadedModSrc);
 					mod = mod.concat(loadedMods);
+					//console.log(loadedMods);
 				}
-				//alert( stone.attrNum(module.getBase()) );
 				var rModObj = module.getMod(mod);
 				var modObj = callfn.apply(null, rModObj);
 			};
 		}
 	},
 	requireFnRun: function(){
-		var toRunRequireStr = this.requireLog.shift(),
-			reqFn = this.inRequire[toRunRequireStr];
-		reqFn ? reqFn() : '';
-		reqFn = null;
-		delete this.inRequire[toRunRequireStr];
-		//==========================================
-		//stone.fnRun(this.inRequire);
-		//****** debug not use
-		//this.inRequire = {};
+		stone.fnRun(this.inRequire);
+		this.inRequire = {};
 	},
 
 
@@ -1783,10 +1634,6 @@ Require.init = function(){
 	//Exported Function
 	var expfn = function(rjs, callfn){
 		//only require('modName'); is ok
-		if(arguments.length == 0){
-			//require() return the required array
-			return require;
-		}
 		if( typeof rjs === 'string' && !callfn){
 			var modName = module.getModName(rjs),
 				mod = module.getMod(modName),
@@ -1826,21 +1673,19 @@ Require.init = function(){
 
 		return srcs;
 	};
-	//require config ==========================
 	expfn.setPath = function(path){
 		module.setPath(path);
 		return module.getPath();
 	};
 	expfn.getPath = function(){
 		return module.getPath();
-	};
-	expfn.error = undefined;
-	//require config ==========================
+	}
 
 	return expfn;
 }();
+
 //Exported to Global
-_globalContext.require = Require.init;
+window.require = Require.init;
 
 /* DEFINE MODULE FUNCTION ------------------------------------------------------*/
 var module = function(){
@@ -1960,13 +1805,9 @@ var module = function(){
 		}
 			
 	};
-	exports.queryTask = function(defList){
-		/*
-		 * module.queryTask(defList);
-		 */
-		var defList = defList || this.getDefineList();
+	exports.queryTask = function(){
 		var logObj = this.logObj;
-		stone.isEmpty(logObj) ? ( this.doFactory(defList), require.now.requireFnRun() ) : '';
+		stone.isEmpty(logObj) ? ( this.doFactory(this.getDefineList()), require.now.requireFnRun() ) : '';
 	};
 	exports.getMod = function(modId){
 		var type = stone.getType(modId);
@@ -2002,9 +1843,9 @@ var module = function(){
 	//==========================
 	return exports;
 }();
-//Exported to Global
-_globalContext.module = module;
-//Set Attrs
+window.module = module;
+
+/* END:DEFINE REQUIRE FUNCTION -----------------------------------------------------*/
 module.inDefine = {};
 module.logObj = {};
 module.regedMod = [];
@@ -2012,74 +1853,70 @@ module.hasDefinedMod = [];
 module.toLoadQueue = [];
 
 /* DEFINE DEFINE FUNCTION ------------------------------------------------------*/
-var define = function(mName, rMod, factory){
-	//console.log('----------------First in define: '+mName);
-	function doDefine(argList){
-		if(stone.inArray(argList[0], module.hasDefinedMod)){
-			return ;
-		}
-		var tArg1 = stone.getType(argList[1]);
-		//if rMod Exist:array or string 
-		//console.log('doing define----------|| '+argList[0]);
-		if( stone.inArray(tArg1, ['string', 'array']) ){
-			var modName = argList[0], rMod = argList[1], factory = argList[2];
-			//reg in inDefine
-			var cRMod = stone.cloneArray(rMod);
-			module.inDefine[modName] = {
-				needMod: cRMod,
-				factory: function(){
-					var rModObj = module.getMod(cRMod);
-					var modObj = factory.apply(null, rModObj);
-					module.regMod(modName, modObj, rModObj);
-				}
-			};
-			require(rMod, 'fromInner');
-		}else if(tArg1 == 'function'){
-			//no rMod, only modName and factory
-			var modName = argList[0], factory = argList[1];
-			module.inDefine[modName] = {
-				factory: function(){
-					var modObj = factory();
-					module.regMod(modName, modObj);					
-				}
-			};
-			//module.regMod(modName, factory );
-		}else if(tArg1 == 'object'){
-			var modName = argList[0], modObj = argList[1];
+var define = function(){
 
-			module.inDefine[modName] = {
-				factory: function(){
-					module.regMod(modName, modObj);					
-				}
-			};
+	var expfn = function(mName, rMod, factory){
+		//console.log('----------------First in define: '+mName);
+		function doDefine(argList){
+			if(stone.inArray(argList[0], module.hasDefinedMod)){
+				return ;
+			}
+			var tArg1 = stone.getType(argList[1]);
+			//if rMod Exist:array or string 
+			//console.log('doing define----------|| '+argList[0]);
+			if( stone.inArray(tArg1, ['string', 'array']) ){
+				var modName = argList[0], rMod = argList[1], factory = argList[2];
+				//reg in inDefine
+				var cRMod = stone.cloneArray(rMod);
+				module.inDefine[modName] = {
+					needMod: cRMod,
+					factory: function(){
+						var rModObj = module.getMod(cRMod);
+						var modObj = factory.apply(null, rModObj);
+						module.regMod(modName, modObj, rModObj);
+					}
+				};
+				require(rMod, 'fromInner');
+			}else if(tArg1 == 'function'){
+				//no rMod, only modName and factory
+				var modName = argList[0], factory = argList[1];
+				module.inDefine[modName] = {
+					factory: function(){
+						var modObj = factory();
+						module.regMod(modName, modObj);					
+					}
+				};
+				//module.regMod(modName, factory );
+			}else if(tArg1 == 'object'){
+				var modName = argList[0], modObj = argList[1];
+
+				module.inDefine[modName] = {
+					factory: function(){
+						module.regMod(modName, modObj);					
+					}
+				};
+			}else {
+				throw Error('TypeError: define()')
+			}
+
+			module.hasDefinedMod.push(modName);
+		}//function doDefine();	
+
+		var args = [].slice.call(arguments, 0);
+
+		if(stone.getType(args[0]) != 'string'){
+			module.anonymousMod = stone.clone(args);
+			module.anonymousDefine = doDefine;
 		}else {
-			throw Error('TypeError: define()')
+		//defuatul: if not anonmousMod ,then do Define
+			doDefine(args);
 		}
+	};//var expfn
 
-		module.hasDefinedMod.push(modName);
-	}//function doDefine();	
-
-	var args = [].slice.call(arguments, 0);
-	//for the temp define
-	if(module.inLoading.length === 0){
-		var modDefName = args[0];
-		stone.typeCheck(modDefName, 'string', 'When define module temporary,can not be Anonymous module, it need (modname[string], reMod[string/array], factory[function])');
-		doDefine(args);
-		module.queryTask(modDefName);
-		return module.getMod(modDefName);
-	}
-	//for loading define
-	if(stone.getType(args[0]) != 'string'){
-		module.anonymousMod = stone.clone(args);
-		module.anonymousDefine = doDefine;
-		return;
-	}else {
-	//defuatul: if not anonmousMod ,then do Define
-		doDefine(args);
-	}
-};
+	return expfn;
+}();
 //Exported to Global
-_globalContext.define = define;
+window.define = define;
 
 /* SET AUTO-LOAD SEED FILE ----------------------------------------------------- */ 
 	var _script_rs = document.getElementsByTagName('script'),
@@ -2093,11 +1930,11 @@ _globalContext.define = define;
 			var _seed = _script_rs[i].getAttribute('stone-seed');
 			if(_seed){				
 				var seedSrc = module.getFullSrc(_seed);
-				stone.requireScript(seedSrc);
+				stone.getScript(seedSrc);
 				break;//when find one seed file ,then break and stop
 			}
 		}
 	}
 /* /SET AUTO-LOAD SEED FILE ---------------------------------------------------- */ 
 
-})(window.stone === undefined);////
+})(window.stone == undefined);////
